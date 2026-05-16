@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import ConflictError, NotFoundError
+from app.core.rate_limit import RateLimitMiddleware
 from app.database import create_tables
 from app.routers import employees, insights
 
@@ -22,6 +23,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
