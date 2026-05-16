@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import insights_cache
 from app.models.employee import Employee
 from app.models.enums import EmployeeStatus
 
@@ -14,6 +15,10 @@ class InsightsService:
         self.session = session
 
     async def get_country_stats(self, country: str) -> dict:
+        cache_key = f"country_stats:{country}"
+        cached = insights_cache.get(cache_key)
+        if cached is not None:
+            return cached
         result = await self.session.execute(
             select(
                 func.min(Employee.salary).label("min_salary"),
@@ -29,7 +34,7 @@ class InsightsService:
             return {"headcount": 0, "min_salary": None, "max_salary": None, "avg_salary": None, "total_payroll": None}
 
         median = await self._get_median_salary(country=country)
-        return {
+        stats = {
             "country": country,
             "headcount": row.headcount,
             "min_salary": float(row.min_salary),
@@ -38,6 +43,8 @@ class InsightsService:
             "median_salary": median,
             "total_payroll": float(row.total_payroll),
         }
+        insights_cache.set(cache_key, stats)
+        return stats
 
     async def get_job_title_stats(self, country: str, job_title: str) -> dict:
         result = await self.session.execute(
@@ -103,6 +110,9 @@ class InsightsService:
         return [{"label": label, "count": count} for (label, *_), count in zip(buckets, counts)]
 
     async def get_overview(self) -> dict:
+        cached = insights_cache.get("overview")
+        if cached is not None:
+            return cached
         result = await self.session.execute(
             select(
                 func.count(Employee.id).label("total_employees"),
@@ -114,7 +124,7 @@ class InsightsService:
             )
         )
         row = result.one()
-        return {
+        overview = {
             "total_employees": row.total_employees,
             "active_count": row.active_count,
             "total_payroll": float(row.total_payroll or 0),
@@ -122,6 +132,8 @@ class InsightsService:
             "countries_count": row.countries_count,
             "departments_count": row.departments_count,
         }
+        insights_cache.set("overview", overview)
+        return overview
 
     async def get_department_breakdown(self) -> list[dict]:
         result = await self.session.execute(
