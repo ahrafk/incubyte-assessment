@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import ConflictError, NotFoundError
 from app.database import create_tables
+from app.routers import employees
 
 
 @asynccontextmanager
@@ -52,6 +53,9 @@ async def value_error_handler(request: Request, exc: ValueError):
         status_code=400,
         content={"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}},
     )
+
+
+app.include_router(employees.router)
 
 
 @app.get("/health")
