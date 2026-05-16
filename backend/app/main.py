@@ -46,6 +46,14 @@ async def conflict_handler(request: Request, exc: ConflictError):
     )
 
 
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=400,
+        content={"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}},
+    )
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "version": settings.app_version}
