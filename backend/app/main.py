@@ -6,10 +6,12 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.exceptions import ConflictError, NotFoundError
+from app.database import create_tables
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await create_tables()
     yield
 
 
