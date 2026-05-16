@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 
@@ -12,7 +14,7 @@ async def test_employee_can_be_created_and_retrieved(db_session):
         department="Engineering",
         country="United States",
         salary=95000,
-        hire_date="2023-01-15",
+        hire_date=date(2023, 1, 15),
     )
     db_session.add(employee)
     await db_session.commit()
@@ -34,7 +36,7 @@ async def test_duplicate_email_raises_integrity_error(db_session):
                 department="Engineering",
                 country="India",
                 salary=70000,
-                hire_date="2022-06-01",
+                hire_date=date(2022, 6, 1),
             )
         )
     with pytest.raises(IntegrityError):
@@ -50,7 +52,7 @@ async def test_salary_cannot_be_negative(db_session):
             department="HR",
             country="Germany",
             salary=-1000,
-            hire_date="2024-01-01",
+            hire_date=date(2024, 1, 1),
         )
     )
     with pytest.raises(IntegrityError):
