@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -7,19 +6,7 @@ from sqlalchemy import CheckConstraint, Date, DateTime, Enum, Index, Numeric, St
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
-
-
-class EmploymentType(str, enum.Enum):
-    FULL_TIME = "FULL_TIME"
-    PART_TIME = "PART_TIME"
-    CONTRACT = "CONTRACT"
-    INTERN = "INTERN"
-
-
-class EmployeeStatus(str, enum.Enum):
-    ACTIVE = "ACTIVE"
-    INACTIVE = "INACTIVE"
-    ON_LEAVE = "ON_LEAVE"
+from app.models.enums import EmployeeStatus, EmploymentType
 
 
 class Employee(Base):
