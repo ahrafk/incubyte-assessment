@@ -10,6 +10,7 @@ import DeleteConfirmDialog from "@/components/employees/DeleteConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
+import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 const PER_PAGE = 20;
 
@@ -26,6 +27,8 @@ export default function EmployeesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  useGlobalShortcuts(() => { setEditEmployee(null); setDialogOpen(true); });
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
