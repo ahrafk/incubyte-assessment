@@ -49,13 +49,17 @@ class EmployeeRepository:
         await self.session.commit()
         return True
 
-    async def search(self, query: str, skip: int, limit: int) -> tuple[list[Employee], int]:
+    async def search(
+        self, query: str, skip: int, limit: int, filters: dict | None = None
+    ) -> tuple[list[Employee], int]:
         pattern = f"%{query}%"
         base_query = select(Employee).where(
             Employee.full_name.ilike(pattern)
             | Employee.email.ilike(pattern)
             | Employee.job_title.ilike(pattern)
         )
+        if filters:
+            base_query = self._apply_filters(base_query, filters)
 
         count_result = await self.session.execute(
             select(func.count()).select_from(base_query.subquery())
