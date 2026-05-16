@@ -6,6 +6,7 @@ import SalaryDistributionChart from "@/components/insights/SalaryDistributionCha
 import HeadcountTrendChart from "@/components/insights/HeadcountTrendChart";
 import DepartmentChart from "@/components/insights/DepartmentChart";
 import ExportButton from "@/components/insights/ExportButton";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 export default function InsightsPage() {
   return (
@@ -13,24 +14,33 @@ export default function InsightsPage() {
       <div className="flex items-center justify-end">
         <ExportButton />
       </div>
-      <section>
-        <h2 className="mb-4 text-base font-semibold text-foreground">Overview</h2>
-        <OverviewStats />
-      </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <SalaryDistributionChart />
-        <HeadcountTrendChart />
-      </section>
+      <ErrorBoundary>
+        <section>
+          <h2 className="mb-4 text-base font-semibold text-foreground">Overview</h2>
+          <OverviewStats />
+        </section>
+      </ErrorBoundary>
 
-      <section>
-        <DepartmentChart />
-      </section>
+      <ErrorBoundary>
+        <section className="grid gap-6 lg:grid-cols-2">
+          <SalaryDistributionChart />
+          <HeadcountTrendChart />
+        </section>
+      </ErrorBoundary>
 
-      <section>
-        <h2 className="mb-4 text-base font-semibold text-foreground">Country Insights</h2>
-        <CountryInsights />
-      </section>
+      <ErrorBoundary>
+        <section>
+          <DepartmentChart />
+        </section>
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <section>
+          <h2 className="mb-4 text-base font-semibold text-foreground">Country Insights</h2>
+          <CountryInsights />
+        </section>
+      </ErrorBoundary>
     </div>
   );
 }
