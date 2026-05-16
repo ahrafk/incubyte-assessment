@@ -5,14 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cache import insights_cache
 from app.database import get_session
-from app.schemas.employee import (
-    EmployeeCreate,
-    EmployeePatch,
-    EmployeeResponse,
-    EmployeeUpdate,
-    SingleEmployeeResponse,
-    paginate,
-)
+from app.models.enums import EmployeeStatus, EmploymentType
+from app.schemas.employee import EmployeeCreate, EmployeePatch, EmployeeResponse, paginate, single_response
 from app.services.employee_service import EmployeeService
 
 router = APIRouter(prefix="/api/v1/employees", tags=["employees"])
@@ -26,8 +20,8 @@ async def list_employees(
     country: str | None = Query(None),
     department: str | None = Query(None),
     job_title: str | None = Query(None),
-    status: str | None = Query(None),
-    employment_type: str | None = Query(None),
+    status: EmployeeStatus | None = Query(None),
+    employment_type: EmploymentType | None = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
     filters = {k: v for k, v in {
@@ -54,26 +48,25 @@ async def create_employee(
     employee = await service.create(payload.model_dump())
     insights_cache.invalidate()
     response.headers["Location"] = f"/api/v1/employees/{employee.id}"
-    return {"data": EmployeeResponse.model_validate(employee), "message": "success"}
+    return single_response(employee)
 
 
 @router.get("/{employee_id}")
 async def get_employee(employee_id: str, session: AsyncSession = Depends(get_session)):
     service = EmployeeService(session)
-    employee = await service.get(employee_id)
-    return {"data": EmployeeResponse.model_validate(employee), "message": "success"}
+    return single_response(await service.get(employee_id))
 
 
 @router.put("/{employee_id}")
 async def replace_employee(
     employee_id: str,
-    payload: EmployeeUpdate,
+    payload: EmployeeCreate,
     session: AsyncSession = Depends(get_session),
 ):
     service = EmployeeService(session)
     employee = await service.update(employee_id, payload.model_dump())
     insights_cache.invalidate()
-    return {"data": EmployeeResponse.model_validate(employee), "message": "success"}
+    return single_response(employee)
 
 
 @router.patch("/{employee_id}")
@@ -83,10 +76,9 @@ async def update_employee(
     session: AsyncSession = Depends(get_session),
 ):
     service = EmployeeService(session)
-    data = payload.model_dump(exclude_unset=True)
-    employee = await service.update(employee_id, data)
+    employee = await service.update(employee_id, payload.model_dump(exclude_unset=True))
     insights_cache.invalidate()
-    return {"data": EmployeeResponse.model_validate(employee), "message": "success"}
+    return single_response(employee)
 
 
 @router.delete("/{employee_id}", status_code=204)

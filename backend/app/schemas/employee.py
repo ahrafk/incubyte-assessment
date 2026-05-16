@@ -9,6 +9,12 @@ from pydantic import BaseModel, EmailStr, field_validator
 from app.models.enums import EmployeeStatus, EmploymentType
 
 
+def _validate_positive_salary(v: Decimal | None) -> Decimal | None:
+    if v is not None and v <= 0:
+        raise ValueError("salary must be positive")
+    return v
+
+
 class EmployeeCreate(BaseModel):
     full_name: str
     email: EmailStr
@@ -24,13 +30,7 @@ class EmployeeCreate(BaseModel):
     @field_validator("salary")
     @classmethod
     def salary_must_be_positive(cls, v: Decimal) -> Decimal:
-        if v <= 0:
-            raise ValueError("salary must be positive")
-        return v
-
-
-class EmployeeUpdate(EmployeeCreate):
-    pass
+        return _validate_positive_salary(v)
 
 
 class EmployeePatch(BaseModel):
@@ -48,9 +48,7 @@ class EmployeePatch(BaseModel):
     @field_validator("salary")
     @classmethod
     def salary_must_be_positive(cls, v: Decimal | None) -> Decimal | None:
-        if v is not None and v <= 0:
-            raise ValueError("salary must be positive")
-        return v
+        return _validate_positive_salary(v)
 
 
 class EmployeeResponse(BaseModel):
@@ -71,22 +69,8 @@ class EmployeeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class PaginationMeta(BaseModel):
-    total: int
-    page: int
-    per_page: int
-    total_pages: int
-
-
-class EmployeeListResponse(BaseModel):
-    data: list[EmployeeResponse]
-    meta: PaginationMeta
-    message: str = "success"
-
-
-class SingleEmployeeResponse(BaseModel):
-    data: EmployeeResponse
-    message: str = "success"
+def single_response(employee: Any) -> dict:
+    return {"data": EmployeeResponse.model_validate(employee), "message": "success"}
 
 
 def paginate(items: list[Any], total: int, page: int, per_page: int) -> dict:

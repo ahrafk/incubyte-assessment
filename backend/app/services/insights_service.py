@@ -68,13 +68,7 @@ class InsightsService:
         }
 
     async def get_salary_distribution(self) -> list[dict]:
-        buckets = [
-            ("<30k", 0, 30_000),
-            ("30-60k", 30_000, 60_000),
-            ("60-100k", 60_000, 100_000),
-            ("100-150k", 100_000, 150_000),
-            ("150k+", 150_000, None),
-        ]
+        bucket_labels = ["<30k", "30-60k", "60-100k", "100-150k", "150k+"]
 
         result = await self.session.execute(
             select(
@@ -107,7 +101,7 @@ class InsightsService:
         )
         row = result.one()
         counts = [row.lt30k, row.r30_60k, row.r60_100k, row.r100_150k, row.gte150k]
-        return [{"label": label, "count": count} for (label, *_), count in zip(buckets, counts)]
+        return [{"label": label, "count": count} for label, count in zip(bucket_labels, counts)]
 
     async def get_overview(self) -> dict:
         cached = insights_cache.get("overview")
@@ -171,6 +165,7 @@ class InsightsService:
         today = date.today()
         twelve_months_ago = today - timedelta(days=365)
 
+        # strftime is SQLite-specific; swap for date_trunc when moving to PostgreSQL
         result = await self.session.execute(
             select(
                 func.strftime("%Y-%m", Employee.hire_date).label("month"),
@@ -183,16 +178,25 @@ class InsightsService:
         return [{"month": row.month, "count": row.count} for row in result.all()]
 
     async def _get_median_salary(self, country: str | None = None) -> float | None:
-        query = select(Employee.salary)
+        count_query = select(func.count(Employee.id))
         if country:
-            query = query.where(Employee.country == country)
-        query = query.order_by(Employee.salary)
-
-        result = await self.session.execute(query)
-        salaries = [float(r) for r in result.scalars().all()]
-        if not salaries:
+            count_query = count_query.where(Employee.country == country)
+        count_result = await self.session.execute(count_query)
+        total = count_result.scalar_one()
+        if total == 0:
             return None
-        mid = len(salaries) // 2
-        if len(salaries) % 2 == 0:
-            return (salaries[mid - 1] + salaries[mid]) / 2
-        return salaries[mid]
+
+        base = select(Employee.salary)
+        if country:
+            base = base.where(Employee.country == country)
+        base = base.order_by(Employee.salary)
+
+        mid = total // 2
+        # Fetch the one or two middle rows via LIMIT/OFFSET to keep this O(1) memory
+        if total % 2 == 1:
+            row = await self.session.execute(base.offset(mid).limit(1))
+            return float(row.scalar_one())
+        else:
+            rows = await self.session.execute(base.offset(mid - 1).limit(2))
+            a, b = rows.scalars().all()
+            return (float(a) + float(b)) / 2
