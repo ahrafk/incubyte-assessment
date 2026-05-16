@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.exceptions import ConflictError, NotFoundError
 from app.database import create_tables
-from app.routers import employees
+from app.routers import employees, insights
 
 
 @asynccontextmanager
@@ -56,6 +56,7 @@ async def value_error_handler(request: Request, exc: ValueError):
 
 
 app.include_router(employees.router)
+app.include_router(insights.router)
 
 
 @app.get("/health")
